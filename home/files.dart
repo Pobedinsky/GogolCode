@@ -1,7 +1,6 @@
 import 'package:code_editor/code_editor.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:testing_2_files/services/database.dart';
+import '../Manager.dart';
 
 class FileList extends StatefulWidget {
   @override
@@ -11,27 +10,23 @@ class FileList extends StatefulWidget {
 class _FileListState extends State<FileList> {
   late dynamic arguments;
   late List<Map<String, FileEditor>> entries;
-  late SharedPreferences prefs;
   late String language;
   final TextEditingController _newFileNameController = TextEditingController();
 
-  Future<void> load_data() async {
-    arguments = (ModalRoute.of(context)?.settings.arguments ?? <String, dynamic>{}) as Map;
-    entries = arguments['files'];
-    prefs = arguments['prefs'];
-    language = arguments['language'];
-  }
-
   @override
   Widget build(BuildContext context) {
-    load_data();
+    arguments = (ModalRoute.of(context)?.settings.arguments ?? <String, dynamic>{}) as Map;
+    entries = arguments['files'];
+    language = arguments['language'];
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Current Files")),
+      appBar: AppBar(title: const Text("Your Files")),
       body: Column(
         children: [
           Expanded(
             child: ListView.separated(
+              addAutomaticKeepAlives: false,
+              addRepaintBoundaries: false,
               padding: const EdgeInsets.all(8),
               itemCount: entries.length,
               itemBuilder: (BuildContext context, int index) {
@@ -39,7 +34,7 @@ class _FileListState extends State<FileList> {
                   height: 50,
                   child: TextButton(
                     onLongPress: () {
-                      _showDeleteConfirmationDialog(entries[index], prefs);
+                      _showDeleteConfirmationDialog(entries[index]);
                     },
                     onPressed: () {
                       Navigator.pushNamed(context, "/CodeBox", arguments: {'file': entries[index]});
@@ -66,7 +61,7 @@ class _FileListState extends State<FileList> {
   }
 
   // Function to show a delete confirmation dialog
-  void _showDeleteConfirmationDialog(Map fileEntry, SharedPreferences prefs) {
+  void _showDeleteConfirmationDialog(Map fileEntry) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -84,9 +79,7 @@ class _FileListState extends State<FileList> {
               onPressed: () {
                 // Perform the actual deletion logic here
                 // For now, let's just print a message
-                var uid = prefs.getString('user_token') ?? "";
-                DatabaseService a = DatabaseService(uid: uid);
-                a.deleteFileEditor(fileEntry.values.first, fileEntry.keys.first);
+                Manager.deleteFileEditorManager(fileEntry.values.first, fileEntry.keys.first);
                 print("File ${fileEntry.values.first.name} deleted");
 
                 setState(() {
@@ -110,14 +103,12 @@ class _FileListState extends State<FileList> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text("New File"),
-          content: Column(
-            children: [
+          content:
               TextField(
                 controller: _newFileNameController,
                 decoration: const InputDecoration(labelText: "File Name"),
               ),
-            ],
-          ),
+
           actions: [
             TextButton(
               onPressed: () {
@@ -127,14 +118,11 @@ class _FileListState extends State<FileList> {
             ),
             TextButton(
               onPressed: () async {
-                // Perform the logic for creating a new file here
-                // You can use the _newFileNameController.text to get the entered file name
+
                 String newFileName = _newFileNameController.text.trim();
 
-                var uid = prefs.getString('user_token') ?? "";
-                DatabaseService a = DatabaseService(uid: uid);
                 FileEditor tmp = FileEditor(name: newFileName, language: language, code: "");
-                String f_id = await a.uploadFile(tmp);
+                String f_id = await Manager.uploadFileManager(tmp);
 
                 // For now, let's just print a message
                 print("New file created: $newFileName");
@@ -155,5 +143,3 @@ class _FileListState extends State<FileList> {
     );
   }
 }
-
-
