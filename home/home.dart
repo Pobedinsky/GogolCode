@@ -1,12 +1,10 @@
-import 'package:code_editor/code_editor.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:testing_2_files/services/database.dart';
+import '../Manager.dart';
 import '../Utils.dart';
-import '../services/authentication.dart';
-
 
 class Home extends StatelessWidget {
+  const Home({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -15,10 +13,7 @@ class Home extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () {
-              // Handle logout logic here
-              _showLogoutConfirmationDialog(context);
-            },
+            onPressed: () { _showLogoutConfirmationDialog(context); },
           ),
         ],
       ),
@@ -36,20 +31,12 @@ class Home extends StatelessWidget {
           content: const Text("Are you sure you want to logout?"),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-              },
+              onPressed: () { Navigator.of(context).pop(); }, //close dialog
               child: const Text("Cancel"),
             ),
             TextButton(
               onPressed: () async {
-                // Perform the actual logout logic here
-                // For example, clear user preferences, navigate to login screen, etc.
-                // ...
-                var aux = Authentication();
-                await aux.init();
-                    aux.signOut(context);
-
+                Manager.signOutManager(context);
                 // Close the dialog
                 Navigator.of(context).pop();
               },
@@ -63,48 +50,48 @@ class Home extends StatelessWidget {
 }
 
 class LanguageMenu extends StatefulWidget {
+  const LanguageMenu({super.key});
+
   @override
   _LanguageMenuState createState() => _LanguageMenuState();
 }
 
 class _LanguageMenuState extends State<LanguageMenu> {
-  late SharedPreferences prefs;
   List<String> entries = <String>['Ocaml', 'Java', 'C', 'Python'];
-  List<int> colorCodes = <int>[600, 500, 100, 0];
-
-  Future<void> loadPreferences() async {
-    prefs = await SharedPreferences.getInstance();
-  }
 
   @override
   Widget build(BuildContext context) {
-    loadPreferences();
+
     return ListView.separated(
+      addAutomaticKeepAlives: false,
+      addRepaintBoundaries: false,
       padding: const EdgeInsets.all(8),
       itemCount: entries.length,
       itemBuilder: (BuildContext context, int index) {
-        return Container(
-          height: 50,
-          color: Colors.amber[colorCodes[index]],
-          child: TextButton(
+        return TextButton(
             onPressed: () async {
               showLoaderDialog(context);
-              var token = prefs.getString('user_token')??"";
-              var a = DatabaseService(uid: token);
-
               var language = entries[index].toLowerCase();
-
-              var idWithFile = await a.getFiles(language);
+              var idWithFile = await Manager.getFilesManager(language);
               Navigator.of(context, rootNavigator: true).pop();
-              Navigator.pushNamed(context, "/files", arguments: {'files': idWithFile, 'prefs' : prefs, 'language' : language});
-            },
-            child: Center(child: Text(entries[index])),
+              Navigator.pushNamed(context, "/files", arguments: {'files': idWithFile, 'language' : language});
+            }, child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            image:  DecorationImage(
+              image: Manager.appImages[entries[index]]!,
+              fit: BoxFit.cover,
+            ),
+            border: Border.all(
+              width: 1,
+            ),
+            borderRadius: BorderRadius.circular(12),
           ),
+          width: double.infinity, // Set the width to take the full width of the screen
+          height: 120,),
         );
       },
-      separatorBuilder: (BuildContext context, int index) =>
-      const Divider(color: Colors.white),
+      separatorBuilder: (BuildContext context, int index) => const Divider(color: Colors.white),
     );
   }
 }
-
